@@ -1,0 +1,819 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>ZoneBeat — Heart Rate Zone Calculator | Target HR Training Zones</title>
+<meta name="description" content="Free heart rate zone calculator: find your target heart rate training zones by max HR or the Karvonen formula, build a polarized 80/20 training plan, cross-check with the talk test, and print a personal zone wallet card. Includes a Zone 2 training calculator.">
+<script src="https://cdn.tailwindcss.com"></script>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Oswald:wght@400;500;600;700&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+  body { font-family: 'Inter', system-ui, sans-serif; background: #101210; }
+  .font-track { font-family: 'Oswald', sans-serif; }
+  .tartan { background: linear-gradient(135deg, #E10600 0%, #B30500 55%, #E10600 100%); }
+  .lane-line { border-top: 3px dashed rgba(255,255,255,.85); }
+  .lane-line-b { border-bottom: 3px dashed rgba(255,255,255,.85); }
+  @keyframes pulseDot { 0%,100% { transform: scale(1); opacity: 1; } 50% { transform: scale(1.5); opacity: .55; } }
+  .pulse-dot { animation: pulseDot 1.1s ease-in-out infinite; }
+  @keyframes runAcross { from { transform: translateX(-15%); } to { transform: translateX(115%); } }
+  .runner-strip { animation: runAcross 9s linear infinite; }
+  input[type=number], input[type=date], select { color-scheme: dark; }
+  @media print {
+    body * { visibility: hidden !important; }
+    #walletCard, #walletCard * { visibility: visible !important; }
+    #walletCard { position: absolute !important; left: 0; top: 0; width: 100%; margin: 0 !important; box-shadow: none !important; }
+    .no-print { display: none !important; }
+  }
+</style>
+</head>
+<body id="top" class="bg-[#101210] text-[#F2F3EF] antialiased">
+
+<!-- STICKY HEADER -->
+<header class="no-print sticky top-0 z-50 bg-[#101210]/95 backdrop-blur border-b-2 border-[#E10600]">
+  <div class="mx-auto max-w-6xl px-4 sm:px-6 py-3 flex items-center justify-between">
+    <a href="#top" class="flex items-center gap-2.5">
+      <svg width="34" height="34" viewBox="0 0 34 34" fill="none" aria-hidden="true">
+        <circle cx="17" cy="17" r="15" stroke="#E10600" stroke-width="3"/>
+        <path d="M8 22 C12 16, 14 20, 17 14 S22 12, 26 10" stroke="#FFD100" stroke-width="2.6" stroke-linecap="round"/>
+        <circle cx="26" cy="10" r="2.6" fill="#E10600" class="pulse-dot" style="transform-origin:26px 10px"/>
+      </svg>
+      <span class="font-track text-2xl font-700 tracking-wide uppercase" style="font-weight:700">Zone<span class="text-[#E10600]">Beat</span></span>
+    </a>
+    <nav class="flex items-center gap-5 text-sm font-semibold">
+      <a href="#top" class="hover:text-[#FFD100] transition">Home</a>
+      <a href="https://fixoraa.tech" class="hover:text-[#FFD100] transition">More Tools</a>
+    </nav>
+  </div>
+</header>
+
+<!-- HERO: stadium track -->
+<section class="no-print relative overflow-hidden">
+  <div class="absolute inset-0 opacity-20" style="background: radial-gradient(ellipse 80% 60% at 50% 120%, #E10600 0%, transparent 60%)"></div>
+  <div class="relative mx-auto max-w-6xl px-4 sm:px-6 pt-10 pb-8 text-center">
+    <div class="inline-flex items-center gap-2 border border-[#FFD100]/60 text-[#FFD100] text-xs font-bold uppercase tracking-[0.2em] rounded-full px-4 py-1.5 mb-5">
+      <span class="w-2 h-2 rounded-full bg-[#E10600] pulse-dot"></span> Unlimited Free Usage
+    </div>
+    <h1 class="font-track uppercase text-4xl sm:text-6xl font-bold leading-tight">Heart Rate Zone <span class="text-[#E10600]">Calculator</span></h1>
+    <p class="mt-4 max-w-2xl mx-auto text-[#B9BDB4] text-base sm:text-lg">Find your personal target heart rate training zones, build a polarized 80/20 week, and print your zone wallet card — like lanes on your own private track.</p>
+    <!-- track oval -->
+    <div class="mt-8 flex justify-center">
+      <svg width="420" height="170" viewBox="0 0 420 170" class="w-full max-w-[420px]" aria-hidden="true">
+        <g fill="none" stroke-linecap="round">
+          <rect x="14" y="14" width="392" height="142" rx="71" stroke="#3A3D38" stroke-width="14"/>
+          <rect x="34" y="34" width="352" height="102" rx="51" stroke="#E10600" stroke-width="13"/>
+          <rect x="54" y="54" width="312" height="62" rx="31" stroke="#8f0a05" stroke-width="12"/>
+          <rect x="74" y="74" width="272" height="22" rx="11" stroke="#101210" stroke-width="10"/>
+        </g>
+        <g fill="#F2F3EF" font-family="Oswald,sans-serif" font-size="13" font-weight="700" text-anchor="middle">
+          <text x="210" y="30">Z1</text><text x="210" y="50" fill="#FFD100">Z2</text>
+          <text x="210" y="70">Z3</text><text x="210" y="140">Z4</text><text x="210" y="160">Z5</text>
+        </g>
+      </svg>
+    </div>
+    <div class="mt-2 overflow-hidden whitespace-nowrap opacity-60">
+      <div class="runner-strip inline-block text-[#FFD100] text-xl tracking-[0.6em]">▸ ▸ ▸ ▸ ▸</div>
+    </div>
+  </div>
+</section>
+
+<!-- TOP AD (verbatim) -->
+<div class="no-print mx-auto max-w-6xl px-4 sm:px-6 pt-4" role="complementary" aria-label="Advertisement">
+  <div class="mx-auto text-center" style="max-width:728px">
+    <span class="block text-[10px] tracking-[0.18em] uppercase text-slate-400 mb-1.5">Advertisement</span>
+    <div class="flex justify-center overflow-hidden">
+      <div class="origin-top scale-[0.44] sm:scale-100 shrink-0">
+        <script>
+          atOptions = { 'key' : '4e68ac77881c17fe128a46565d9a4e8c', 'format' : 'iframe', 'height' : 90, 'width' : 728, 'params' : {} };
+        </script>
+        <script src="https://www.highrevenueformat.com/4e68ac77881c17fe128a46565d9a4e8c/invoke.js"></script>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ============ TOOL: ZONE CALCULATOR ============ -->
+<main class="no-print mx-auto max-w-6xl px-4 sm:px-6 py-8">
+  <section class="bg-[#171917] border border-[#2A2D28] rounded-2xl p-5 sm:p-8 shadow-2xl">
+    <h2 class="font-track uppercase text-2xl sm:text-3xl font-semibold">Step 1 — Calculate your zones</h2>
+    <p class="text-[#B9BDB4] mt-2 text-sm sm:text-base">Enter a measured max heart rate, or tick the box and we will estimate it from your age. Add a resting HR to switch to the more personal Karvonen formula.</p>
+
+    <div class="mt-6 grid gap-4 sm:grid-cols-3">
+      <div class="bg-[#101210] rounded-xl p-4 border border-[#2A2D28]">
+        <label class="flex items-center gap-2 text-sm font-semibold cursor-pointer">
+          <input type="checkbox" id="useEst" class="w-4 h-4 accent-[#E10600]"> Estimate max HR from age
+        </label>
+        <div id="ageWrap" class="mt-3 hidden">
+          <label for="age" class="text-xs text-[#B9BDB4] uppercase tracking-wider">Age (years)</label>
+          <input type="number" id="age" min="10" max="100" placeholder="e.g. 32" class="mt-1 w-full bg-[#1D1F1C] border border-[#3A3D38] rounded-lg px-3 py-2.5 focus:outline-none focus:border-[#E10600]">
+        </div>
+        <div id="maxWrap" class="mt-3">
+          <label for="maxhr" class="text-xs text-[#B9BDB4] uppercase tracking-wider">Max heart rate (bpm)</label>
+          <input type="number" id="maxhr" min="100" max="230" placeholder="e.g. 188" class="mt-1 w-full bg-[#1D1F1C] border border-[#3A3D38] rounded-lg px-3 py-2.5 focus:outline-none focus:border-[#E10600]">
+        </div>
+      </div>
+      <div class="bg-[#101210] rounded-xl p-4 border border-[#2A2D28]">
+        <label for="resting" class="text-sm font-semibold">Resting HR <span class="text-[#B9BDB4] font-normal">(optional → Karvonen)</span></label>
+        <input type="number" id="resting" min="30" max="100" placeholder="e.g. 52" class="mt-3 w-full bg-[#1D1F1C] border border-[#3A3D38] rounded-lg px-3 py-2.5 focus:outline-none focus:border-[#E10600]">
+        <p class="text-xs text-[#8E938A] mt-2">Measure it first thing in the morning, lying still. Leave blank for classic % of max HR.</p>
+      </div>
+      <div class="bg-[#101210] rounded-xl p-4 border border-[#2A2D28] flex flex-col justify-between">
+        <p class="text-xs text-[#8E938A] leading-relaxed"><span class="text-[#FFD100] font-semibold">Tip:</span> a max HR from a real field test (or a recent all-out race) beats any formula. Estimates can be off by ±10–12 bpm.</p>
+        <button id="btnCalc" class="mt-4 w-full tartan text-white font-track uppercase tracking-widest text-lg font-semibold rounded-xl py-3 hover:brightness-110 active:scale-[0.98] transition">Calculate zones</button>
+      </div>
+    </div>
+    <p id="calcErr" class="hidden mt-4 text-sm bg-[#3A0E0C] border border-[#E10600] text-[#FFB4AC] rounded-lg px-4 py-2.5"></p>
+    <p id="calcNote" class="hidden mt-3 text-xs text-[#8E938A]"></p>
+
+    <!-- LANES: zones as track lanes -->
+    <div id="lanes" class="mt-6 space-y-3"></div>
+  </section>
+</main>
+
+  <!-- ============ TALK TEST / RPE CROSS-CHECK ============ -->
+  <section class="bg-[#171917] border border-[#2A2D28] rounded-2xl p-5 sm:p-8 mt-8">
+    <h2 class="font-track uppercase text-2xl sm:text-3xl font-semibold">Step 2 — Feel-check: talk test &amp; RPE</h2>
+    <p class="text-[#B9BDB4] mt-2 text-sm sm:text-base">No heart rate monitor? No problem. Every zone has a feel. Match what you can say out loud (and how hard it feels on a 1–10 scale) to the zone you think you are in. Tap any lane above to open its feel-check too.</p>
+    <div id="talkCards" class="mt-6 grid gap-4 sm:grid-cols-2 lg:grid-cols-3"></div>
+  </section>
+
+  <!-- ============ POLARIZED 80/20 PLAN ============ -->
+  <section class="bg-[#171917] border border-[#2A2D28] rounded-2xl p-5 sm:p-8 mt-8">
+    <div class="flex items-center gap-3 flex-wrap">
+      <h2 class="font-track uppercase text-2xl sm:text-3xl font-semibold">Step 3 — Polarized 80/20 week planner</h2>
+      <span class="text-xs font-bold uppercase tracking-widest bg-[#FFD100] text-[#101210] rounded-full px-3 py-1">80% easy · 20% hard</span>
+    </div>
+    <p class="text-[#B9BDB4] mt-2 text-sm sm:text-base">Elite endurance athletes spend roughly 80% of training time easy (Zones 1–2) and 20% hard (Zones 4–5), skipping the grey Zone 3. Enter your weekly hours and goal — we will build the week.</p>
+    <div class="mt-6 grid gap-4 sm:grid-cols-3">
+      <div class="bg-[#101210] rounded-xl p-4 border border-[#2A2D28]">
+        <label for="planHours" class="text-xs text-[#B9BDB4] uppercase tracking-wider">Weekly training hours</label>
+        <input type="number" id="planHours" min="1" max="25" step="0.5" placeholder="e.g. 5" class="mt-2 w-full bg-[#1D1F1C] border border-[#3A3D38] rounded-lg px-3 py-2.5 focus:outline-none focus:border-[#E10600]">
+      </div>
+      <div class="bg-[#101210] rounded-xl p-4 border border-[#2A2D28]">
+        <label for="planGoal" class="text-xs text-[#B9BDB4] uppercase tracking-wider">Goal</label>
+        <select id="planGoal" class="mt-2 w-full bg-[#1D1F1C] border border-[#3A3D38] rounded-lg px-3 py-2.5 focus:outline-none focus:border-[#E10600]">
+          <option value="general-fitness">General fitness</option>
+          <option value="5k">5K race</option>
+          <option value="10k">10K race</option>
+          <option value="half-marathon">Half marathon</option>
+          <option value="marathon">Marathon</option>
+          <option value="weight-loss">Weight loss</option>
+        </select>
+      </div>
+      <div class="bg-[#101210] rounded-xl p-4 border border-[#2A2D28] flex items-end">
+        <button id="btnPlan" class="w-full tartan text-white font-track uppercase tracking-widest text-lg font-semibold rounded-xl py-3 hover:brightness-110 active:scale-[0.98] transition">Build my week</button>
+      </div>
+    </div>
+    <p id="planErr" class="hidden mt-4 text-sm bg-[#3A0E0C] border border-[#E10600] text-[#FFB4AC] rounded-lg px-4 py-2.5"></p>
+    <div id="planOut" class="mt-6"></div>
+  </section>
+
+  <!-- ============ WALLET CARD ============ -->
+  <section class="bg-[#171917] border border-[#2A2D28] rounded-2xl p-5 sm:p-8 mt-8">
+    <h2 class="font-track uppercase text-2xl sm:text-3xl font-semibold">Step 4 — Printable zone wallet card</h2>
+    <p class="text-[#B9BDB4] mt-2 text-sm sm:text-base">Calculate your zones first, then print this pocket card and take it to the track. Printing shows only the card.</p>
+    <p id="walletErr" class="hidden mt-4 text-sm bg-[#3A3A0C] border border-[#FFD100] text-[#FFE98A] rounded-lg px-4 py-2.5"></p>
+    <div class="mt-6 flex flex-col items-center gap-5">
+      <div id="walletCard" class="w-full max-w-md bg-[#F5F2E8] text-[#101210] rounded-xl p-6 shadow-2xl border-4 border-[#E10600]">
+        <div class="flex items-center justify-between border-b-2 border-[#E10600] pb-3">
+          <div>
+            <p class="font-track uppercase text-xl font-bold">Zone<span class="text-[#E10600]">Beat</span> <span class="text-sm font-medium normal-case text-[#555]">zone card</span></p>
+            <p id="wcMeta" class="text-xs text-[#666] mt-0.5">Calculate your zones to fill this card</p>
+          </div>
+          <svg width="40" height="40" viewBox="0 0 34 34" fill="none" aria-hidden="true">
+            <circle cx="17" cy="17" r="15" stroke="#E10600" stroke-width="3"/>
+            <path d="M8 22 C12 16, 14 20, 17 14 S22 12, 26 10" stroke="#B30500" stroke-width="2.6" stroke-linecap="round"/>
+            <circle cx="26" cy="10" r="2.6" fill="#E10600"/>
+          </svg>
+        </div>
+        <div id="wcZones" class="mt-3 space-y-1.5">
+          <p class="text-sm text-[#666] italic">Your personal BPM ranges will appear here.</p>
+        </div>
+        <p class="mt-4 text-[11px] text-[#777] leading-snug border-t border-[#ddd] pt-3">Feel-check: Z1 sing · Z2 chat · Z3 phrases · Z4 few words · Z5 silence. Estimates only — consult a doctor before intense training.</p>
+      </div>
+      <button id="btnPrint" class="bg-[#FFD100] text-[#101210] font-track uppercase tracking-widest font-semibold rounded-xl px-8 py-3 hover:brightness-105 active:scale-[0.98] transition">Print wallet card</button>
+    </div>
+  </section>
+
+  <!-- ============ RETEST GUIDANCE ============ -->
+  <section class="bg-[#171917] border border-[#2A2D28] rounded-2xl p-5 sm:p-8 mt-8">
+    <h2 class="font-track uppercase text-2xl sm:text-3xl font-semibold">Step 5 — Retest checker</h2>
+    <p class="text-[#B9BDB4] mt-2 text-sm sm:text-base">Zones go stale as fitness changes. Retest your max HR or threshold every 6–8 weeks. Enter your last test date and we will tell you where you stand.</p>
+    <div class="mt-6 flex flex-col sm:flex-row gap-4 sm:items-end">
+      <div class="bg-[#101210] rounded-xl p-4 border border-[#2A2D28] sm:w-72">
+        <label for="lastTest" class="text-xs text-[#B9BDB4] uppercase tracking-wider">Last max-HR / threshold test</label>
+        <input type="date" id="lastTest" class="mt-2 w-full bg-[#1D1F1C] border border-[#3A3D38] rounded-lg px-3 py-2.5 focus:outline-none focus:border-[#E10600]">
+      </div>
+      <button id="btnRetest" class="sm:w-64 tartan text-white font-track uppercase tracking-widest text-lg font-semibold rounded-xl py-3 hover:brightness-110 active:scale-[0.98] transition">Check my zones</button>
+    </div>
+    <p id="retestErr" class="hidden mt-4 text-sm bg-[#3A0E0C] border border-[#E10600] text-[#FFB4AC] rounded-lg px-4 py-2.5"></p>
+    <div id="retestOut" class="mt-6"></div>
+  </section>
+
+  <!-- DISCLAIMER -->
+  <section class="mt-8 border-2 border-[#FFD100]/70 bg-[#1D1C10] rounded-2xl p-5 sm:p-6">
+    <h2 class="font-track uppercase text-xl font-semibold text-[#FFD100]">Health disclaimer</h2>
+    <p class="mt-2 text-sm text-[#D8D5C2] leading-relaxed">ZoneBeat gives <strong>estimates only</strong> for general fitness information — not medical advice. Heart rate formulas can be off by ±10–12 bpm, and the right zones depend on your health, medications, and training history. <strong>Consult a doctor before starting intense training</strong>, especially if you have (or suspect) a heart condition, high blood pressure, or chest pain during exercise. Stop and seek care if you feel dizzy, faint, or unwell.</p>
+  </section>
+</main>
+
+<!-- BOTTOM AD (verbatim) -->
+<div class="no-print mx-auto max-w-6xl px-4 sm:px-6 pb-4" role="complementary" aria-label="Advertisement">
+  <div class="mx-auto text-center" style="max-width:728px">
+    <span class="block text-[10px] tracking-[0.18em] uppercase text-slate-400 mb-1.5">Advertisement</span>
+    <div class="flex justify-center overflow-hidden">
+      <script async src="https://js.wpadmngr.com/static/adManager.js" data-admpid="464498"></script>
+    </div>
+  </div>
+</div>
+
+<!-- ============ SEO ARTICLE ============ -->
+<article class="no-print mx-auto max-w-6xl px-4 sm:px-6 py-10 text-[#C9CCC3]">
+  <h2 class="font-track uppercase text-3xl font-semibold text-[#F2F3EF]">The Complete Guide to Heart Rate Zone Training</h2>
+
+  <h3 class="font-track uppercase text-xl font-semibold text-[#FFD100] mt-8">What Are Heart Rate Training Zones?</h3>
+  <p class="mt-3 leading-relaxed">Heart rate training zones divide the range between your resting heart rate and your maximum heart rate into five intensity bands. Each band — from easy Zone 1 to all-out Zone 5 — stresses a different energy system in your body. A heart rate zone calculator takes your max heart rate (measured or estimated) and converts it into personal beats-per-minute ranges, so every workout has a target instead of a guess. Training in the right zone is the difference between building fitness efficiently and simply getting tired: two runners can both run for an hour, but the one who spends 45 minutes in Zone 2 and 15 minutes in Zone 4 gets dramatically more adaptation than the one who drifts through the whole run in Zone 3.</p>
+  <p class="mt-3 leading-relaxed">The five-zone model used by ZoneBeat is the most widely adopted system in endurance sport. Zone 1 (50–60% of max) is recovery, Zone 2 (60–70%) is the aerobic base, Zone 3 (70–80%) is tempo, Zone 4 (80–90%) is threshold, and Zone 5 (90–100%) is peak effort. Coaches, sports scientists, and professional teams all speak this language, which means once you know your target heart rate training zones, you can follow almost any structured plan ever written.</p>
+
+  <h3 class="font-track uppercase text-xl font-semibold text-[#FFD100] mt-8">Why Train in Zones Instead of by Pace?</h3>
+  <p class="mt-3 leading-relaxed">Pace lies. On a hot day, at altitude, on hills, when you are tired, or when you are dehydrated, the same pace costs far more effort. Heart rate does not lie about effort — it rises and falls with what your cardiovascular system is actually doing. That makes zones the honest currency of training. A target heart rate training zones approach automatically adjusts for conditions: your Zone 2 run might be 6:30 per kilometre on a fresh cool morning and 7:15 per kilometre after a hard week, and both are exactly right. Pace-based runners often train too hard on easy days and too easy on hard days; zone-based runners hit the intended stimulus almost every session.</p>
+  <p class="mt-3 leading-relaxed">Zones also protect you from the most common amateur mistake: the grey zone. Most recreational runners do nearly everything at a "kinda hard" effort — Zone 3 — which is too intense to recover from quickly but too easy to build top-end fitness. The result is chronic mild fatigue with mediocre progress. A heart rate zone calculator makes the invisible visible: it shows you, session by session, whether you are truly going easy or truly going hard, and the polarized 80/20 plan generator on this page builds your week around that exact split.</p>
+
+  <h3 class="font-track uppercase text-xl font-semibold text-[#FFD100] mt-8">The Five Zones, Explained</h3>
+  <p class="mt-3 leading-relaxed"><strong class="text-[#F2F3EF]">Zone 1 — Recovery (50–60% of max HR).</strong> Walking-pace effort. Blood flows, waste products clear, and you finish fresher than you started. Use it for warm-ups, cool-downs, and active recovery days. You should be able to sing here without a wobble in your voice.</p>
+  <p class="mt-3 leading-relaxed"><strong class="text-[#F2F3EF]">Zone 2 — Aerobic Base (60–70% of max HR).</strong> The money zone. Here your body burns mostly fat, builds mitochondria (your cells' power plants), grows capillaries, and strengthens the heart's stroke volume. It feels almost too easy, which is why beginners constantly overshoot it. Elite endurance athletes spend roughly 80% of their total training time here. Our zone 2 training calculator section above gives you the exact BPM window — guard it jealously, because this is where aerobic fitness is actually built.</p>
+  <p class="mt-3 leading-relaxed"><strong class="text-[#F2F3EF]">Zone 3 — Tempo (70–80% of max HR).</strong> "Comfortably hard." You can speak in short phrases. This zone builds stamina and feels productive, which is exactly why it becomes a trap: too much Zone 3 leaves you tired without the deep aerobic gains of Zone 2 or the ceiling-raising gains of Zones 4–5. Use it deliberately — marathon-pace work, for example — not by accident.</p>
+  <p class="mt-3 leading-relaxed"><strong class="text-[#F2F3EF]">Zone 4 — Threshold (80–90% of max HR).</strong> Your lactate threshold lives here: the hardest effort you can sustain for roughly an hour. Intervals in Zone 4 push that ceiling higher, which raises the pace you can hold in a race. Expect heavy breathing and burning legs; conversation is limited to a few words.</p>
+  <p class="mt-3 leading-relaxed"><strong class="text-[#F2F3EF]">Zone 5 — Peak (90–100% of max HR).</strong> Maximum effort — VO2 max territory. Sustainable for only a few minutes at a time, used in short intervals to raise your aerobic ceiling. Talking is impossible. Because this zone is so demanding, it should be a small, deliberate slice of training, never the default.</p>
+
+  <h3 class="font-track uppercase text-xl font-semibold text-[#FFD100] mt-8">Two Ways to Calculate Your Zones</h3>
+  <p class="mt-3 leading-relaxed">The classic method takes straight percentages of your maximum heart rate: Zone 2 is simply 60–70% of max. It is simple and it works for most people. The Karvonen method (heart-rate reserve) is more personal: it subtracts your resting heart rate from your max first, takes the percentage of that reserve, then adds resting back. Because a fitter athlete's resting heart rate is lower, Karvonen shifts the zones upward to reflect real fitness — two people with the same max HR of 190 but resting rates of 45 and 65 get meaningfully different Zone 2 windows. ZoneBeat applies Karvonen automatically whenever you enter a resting heart rate. Either way, everything hinges on one number: your max heart rate. A measured max from a field test or an all-out race finish is worth far more than any formula — but if you do not have one, the Tanaka formula (208 − 0.7 × age) used by our heart rate zone calculator is the best-researched estimate available, typically within about ±10–12 bpm of reality.</p>
+
+  <h3 class="font-track uppercase text-xl font-semibold text-[#FFD100] mt-8">Zone 2 Training: Building Your Aerobic Engine</h3>
+  <p class="mt-3 leading-relaxed">Zone 2 has become the most talked-about concept in endurance fitness, and the hype is deserved. At 60–70% of max HR, your body preferentially burns fat, spares glycogen, and triggers the adaptations that make everything else faster: more mitochondria, denser capillaries, better fat oxidation, improved insulin sensitivity, and a stronger, more efficient heart. Studies of elite rowers, runners, and cyclists consistently show the vast majority of their volume at this easy intensity. The practical challenge is discipline — true Zone 2 often means slowing down far more than your ego likes, sometimes to a jog-shuffle or walk-jog on hills. Use the zone 2 training calculator result above as a hard ceiling, not a suggestion: if your watch says 142 and your Zone 2 tops out at 140, slow down. The talk test is your backup — in Zone 2 you should be able to speak in complete, comfortable sentences. Accumulate 3–5 hours a week here and most runners see their easy pace drop substantially within 8–12 weeks, without a single gut-busting workout.</p>
+
+  <h3 class="font-track uppercase text-xl font-semibold text-[#FFD100] mt-8">The Polarized 80/20 Rule</h3>
+  <p class="mt-3 leading-relaxed">Sports scientist Stephen Seiler's research on elite endurance athletes revealed a striking pattern across sports and continents: about 80% of training time is spent at low intensity (Zones 1–2) and about 20% at high intensity (Zones 4–5), with very little in the middle. This "polarized" distribution outperformed training that clustered in the moderate zone, even when total volume was equal. The logic is clean: easy sessions build the aerobic base and let you recover, hard sessions raise your ceiling, and moderate sessions do neither job well while still costing recovery. The week planner on this page implements the rule literally — enter your available hours and goal, and it distributes roughly 80% of minutes to easy Zone 1–2 sessions (including one long run) and 20% to structured intervals, with plain-English descriptions of each session. Rest days are baked in, because adaptation happens during recovery, not during the workout.</p>
+
+  <h3 class="font-track uppercase text-xl font-semibold text-[#FFD100] mt-8">No Monitor? Use the Talk Test and RPE</h3>
+  <p class="mt-3 leading-relaxed">A chest strap or optical sensor is the most precise way to track zones, but your body broadcasts the same information for free. The talk test maps cleanly onto the five zones: singing means Zone 1, comfortable full sentences mean Zone 2, choppy phrases mean Zone 3, a few gasped words mean Zone 4, and silence means Zone 5. Pair it with RPE — rate of perceived exertion on a 1–10 scale — and you have a surprisingly accurate dashboard. Research shows experienced athletes can peg their zone by feel within a few beats of a monitor's reading. Use the feel-check cards above during your first weeks of zone training to calibrate: glance at your heart rate, note what you could say out loud, and the connection will become automatic. If RPE and the monitor ever disagree badly — say, Zone 2 pace feels like an 8 out of 10 — trust your body that day; fatigue, heat, illness, and dehydration all raise heart rate for the same effort.</p>
+
+  <h3 class="font-track uppercase text-xl font-semibold text-[#FFD100] mt-8">When to Retest: Keeping Your Zones Honest</h3>
+  <p class="mt-3 leading-relaxed">Your zones are a snapshot, not a tattoo. As fitness improves, resting heart rate falls and threshold rises; as you age, max heart rate drifts down roughly a beat per year. That is why coaches retest every 6–8 weeks. The retest checker above tracks your last test date and flags when you are due, but your body gives earlier hints: Zone 2 feels effortless even at the top of the range, your resting heart rate has dropped 5 or more beats, you can no longer touch your old max in hard intervals, or RPE and heart rate tell different stories. Any of these means the numbers on your wallet card no longer describe you. The retest protocol is simple and free: after a good warm-up, run three 3-minute hill repeats with the last one all-out (peak heart rate ≈ max), or run a 30-minute time trial and take the average heart rate of the final 20 minutes (≈ threshold). Cool down, record the numbers, recalculate, and print a fresh card. Never test alone, and get medical clearance first if you are new to hard exercise.</p>
+
+  <h3 class="font-track uppercase text-xl font-semibold text-[#FFD100] mt-8">Start Today</h3>
+  <p class="mt-3 leading-relaxed">You now know more about heart rate zones than most gym-goers ever will. Scroll up, run the heart rate zone calculator, print your wallet card, and build your first polarized week. Train mostly easy, occasionally very hard, retest every couple of months — and watch your fitness compound like interest. Your future self, cruising at a pace that used to hurt, will thank you.</p>
+</article>
+
+<!-- ============ FAQS ============ -->
+<section class="no-print mx-auto max-w-6xl px-4 sm:px-6 pb-10">
+  <h2 class="font-track uppercase text-3xl font-semibold">Frequently asked questions</h2>
+  <div class="mt-6 space-y-4 text-[#C9CCC3]">
+    <details class="bg-[#171917] border border-[#2A2D28] rounded-xl p-5">
+      <summary class="font-semibold text-[#F2F3EF] cursor-pointer">How do I calculate my heart rate zones?</summary>
+      <p class="mt-3 leading-relaxed text-sm">Take your maximum heart rate and multiply by the zone percentages: Zone 1 is 50–60%, Zone 2 is 60–70%, Zone 3 is 70–80%, Zone 4 is 80–90%, and Zone 5 is 90–100%. For a more personal result, use the Karvonen formula: subtract your resting heart rate from your max to get your heart-rate reserve, take the percentage of that, then add resting back. ZoneBeat's heart rate zone calculator does both automatically — enter a resting heart rate to switch to Karvonen.</p>
+    </details>
+    <details class="bg-[#171917] border border-[#2A2D28] rounded-xl p-5">
+      <summary class="font-semibold text-[#F2F3EF] cursor-pointer">What is Zone 2 training and why is everyone talking about it?</summary>
+      <p class="mt-3 leading-relaxed text-sm">Zone 2 is 60–70% of your max heart rate — a pace where you can speak in full, comfortable sentences. It builds mitochondria, capillaries, and fat-burning capacity, forming the aerobic base that makes every faster pace easier. Elite endurance athletes spend about 80% of their training time here. Use the zone 2 training calculator above to find your exact BPM window, then protect it: most people train Zone 2 far too fast.</p>
+    </details>
+    <details class="bg-[#171917] border border-[#2A2D28] rounded-xl p-5">
+      <summary class="font-semibold text-[#F2F3EF] cursor-pointer">What is the 80/20 polarized training rule?</summary>
+      <p class="mt-3 leading-relaxed text-sm">Research on elite athletes shows roughly 80% of training time should be easy (Zones 1–2) and 20% hard (Zones 4–5), with minimal time in moderate Zone 3. Easy work builds the aerobic engine and allows recovery; hard work raises your ceiling. The polarized plan generator on this page builds a full week around this split from your available hours and goal.</p>
+    </details>
+    <details class="bg-[#171917] border border-[#2A2D28] rounded-xl p-5">
+      <summary class="font-semibold text-[#F2F3EF] cursor-pointer">Is "220 minus age" accurate for max heart rate?</summary>
+      <p class="mt-3 leading-relaxed text-sm">It is a rough estimate — typically within ±10–12 bpm of your true max, but it can be off by 20+ in individuals. The Tanaka formula (208 − 0.7 × age) fits research data better and is what ZoneBeat uses. Nothing beats a measured max from a field test (like 3 × 3-minute hill repeats with the last one all-out) or a recent all-out race finish.</p>
+    </details>
+    <details class="bg-[#171917] border border-[#2A2D28] rounded-xl p-5">
+      <summary class="font-semibold text-[#F2F3EF] cursor-pointer">Can I use the talk test instead of a heart rate monitor?</summary>
+      <p class="mt-3 leading-relaxed text-sm">Yes — it maps remarkably well to the zones. Singing = Zone 1, comfortable full sentences = Zone 2, short choppy phrases = Zone 3, a few words = Zone 4, no talking at all = Zone 5. Combine it with RPE (how hard it feels, 1–10) and you can train by zones with no device at all. Check the feel-check cards above for the full cross-reference per zone.</p>
+    </details>
+    <details class="bg-[#171917] border border-[#2A2D28] rounded-xl p-5">
+      <summary class="font-semibold text-[#F2F3EF] cursor-pointer">How often should I retest my max heart rate?</summary>
+      <p class="mt-3 leading-relaxed text-sm">Every 6–8 weeks. Fitness gains lower your resting heart rate and raise your threshold, while aging slowly lowers max heart rate — so zones drift. Retest sooner if Zone 2 feels effortless at the top of its range, your resting HR dropped 5+ bpm, you took extended time off, or RPE and heart rate start disagreeing. The retest checker above tracks your dates and flags stale zones.</p>
+    </details>
+  </div>
+</section>
+
+<script type="application/ld+json">
+{
+  "@context": "https://schema.org",
+  "@type": "FAQPage",
+  "mainEntity": [
+    { "@type": "Question", "name": "How do I calculate my heart rate zones?", "acceptedAnswer": { "@type": "Answer", "text": "Multiply your maximum heart rate by the zone percentages: Zone 1 is 50-60%, Zone 2 is 60-70%, Zone 3 is 70-80%, Zone 4 is 80-90%, Zone 5 is 90-100%. The Karvonen formula is more personal: subtract resting HR from max HR, take the percentage of that reserve, then add resting HR back." } },
+    { "@type": "Question", "name": "What is Zone 2 training and why is everyone talking about it?", "acceptedAnswer": { "@type": "Answer", "text": "Zone 2 is 60-70% of max heart rate, a pace where you can speak in full comfortable sentences. It builds mitochondria, capillaries and fat-burning capacity - the aerobic base behind all faster running. Elite athletes spend about 80% of training time here." } },
+    { "@type": "Question", "name": "What is the 80/20 polarized training rule?", "acceptedAnswer": { "@type": "Answer", "text": "About 80% of training time should be easy (Zones 1-2) and 20% hard (Zones 4-5), with minimal moderate Zone 3 work. Easy sessions build the aerobic engine, hard sessions raise your ceiling." } },
+    { "@type": "Question", "name": "Is 220 minus age accurate for max heart rate?", "acceptedAnswer": { "@type": "Answer", "text": "It is a rough estimate, typically within 10-12 bpm but sometimes off by 20+. The Tanaka formula (208 - 0.7 x age) fits research better. A measured max from a field test or all-out race is always best." } },
+    { "@type": "Question", "name": "Can I use the talk test instead of a heart rate monitor?", "acceptedAnswer": { "@type": "Answer", "text": "Yes. Singing = Zone 1, comfortable full sentences = Zone 2, short choppy phrases = Zone 3, a few words = Zone 4, no talking = Zone 5. Combined with RPE (1-10 effort scale) it is a reliable no-device method." } },
+    { "@type": "Question", "name": "How often should I retest my max heart rate?", "acceptedAnswer": { "@type": "Answer", "text": "Every 6-8 weeks. Retest sooner if Zone 2 feels effortless at the top of its range, resting HR dropped 5+ bpm, you took extended time off, or RPE and heart rate disagree." } }
+  ]
+}
+</script>
+
+<footer class="no-print border-t border-[#2A2D28] mt-4">
+  <div class="mx-auto max-w-6xl px-4 sm:px-6 py-8 flex flex-col sm:flex-row items-center justify-between gap-4">
+    <p class="font-track uppercase text-lg font-semibold">Zone<span class="text-[#E10600]">Beat</span></p>
+    <p class="text-xs text-[#8E938A]">Free heart rate zone tools. Estimates only — train smart, consult a doctor before intense exercise.</p>
+    <nav class="flex gap-5 text-sm font-semibold">
+      <a href="#top" class="hover:text-[#FFD100]">Home</a>
+      <a href="https://fixoraa.tech" class="hover:text-[#FFD100]">More Tools</a>
+    </nav>
+  </div>
+</footer>
+
+<!-- LIB (placeholder replaced at build time) -->
+<script id="zonebeat-heart-rate-zones-lib">
+/* ZoneBeat lib — pure functions only. No DOM, no window, no localStorage.
+   Evaluated by the test harness via new Function(). */
+
+function isNum(x) {
+  return typeof x === 'number' && isFinite(x);
+}
+
+function clampInt(x, lo, hi) {
+  return Math.max(lo, Math.min(hi, Math.round(x)));
+}
+
+/* ---- zone definitions: [zone, name, pctLow, pctHigh] ---- */
+function zoneDefs() {
+  return [
+    { zone: 1, name: 'Recovery',   pctLow: 50, pctHigh: 60 },
+    { zone: 2, name: 'Aerobic Base', pctLow: 60, pctHigh: 70 },
+    { zone: 3, name: 'Tempo',      pctLow: 70, pctHigh: 80 },
+    { zone: 4, name: 'Threshold',  pctLow: 80, pctHigh: 90 },
+    { zone: 5, name: 'Peak',       pctLow: 90, pctHigh: 100 }
+  ];
+}
+
+/* Estimate max heart rate from age. NOTE: this is an estimate only —
+   a measured max from a field test is always more accurate. */
+function estimateMaxHR(age, method) {
+  if (!isNum(age) || age < 10 || age > 100) {
+    return { error: 'Enter an age between 10 and 100.' };
+  }
+  var m = (method === 'fox') ? 'fox' : 'tanaka';
+  var value = (m === 'fox') ? 220 - age : Math.round(208 - 0.7 * age);
+  return {
+    value: value,
+    method: m,
+    label: m === 'fox' ? 'Fox formula (220 − age)' : 'Tanaka formula (208 − 0.7 × age)',
+    note: 'This is an estimate only. Real max HR varies by genetics and fitness — a field test gives a truer number. Consult a doctor before intense training.'
+  };
+}
+
+/* Five training zones as % of max HR. */
+function zonesByMaxHR(maxHR) {
+  if (!isNum(maxHR) || maxHR < 100 || maxHR > 230) {
+    return { error: 'Max heart rate must be between 100 and 230 bpm.' };
+  }
+  var zones = zoneDefs().map(function (d) {
+    return {
+      zone: d.zone,
+      name: d.name,
+      pctLow: d.pctLow,
+      pctHigh: d.pctHigh,
+      bpmLow: clampInt(maxHR * d.pctLow / 100, 0, 300),
+      bpmHigh: clampInt(maxHR * d.pctHigh / 100, 0, 300)
+    };
+  });
+  return { maxHR: Math.round(maxHR), method: 'percent-max', zones: zones };
+}
+
+/* Karvonen: % of heart-rate reserve + resting HR. Personalizes zones to
+   fitness — two athletes with the same max HR get different zones. */
+function zonesByKarvonen(maxHR, restingHR) {
+  if (!isNum(maxHR) || maxHR < 100 || maxHR > 230) {
+    return { error: 'Max heart rate must be between 100 and 230 bpm.' };
+  }
+  if (!isNum(restingHR) || restingHR < 30 || restingHR > 100) {
+    return { error: 'Resting heart rate must be between 30 and 100 bpm.' };
+  }
+  if (maxHR - restingHR < 40) {
+    return { error: 'Max HR must be well above resting HR.' };
+  }
+  var hrr = maxHR - restingHR;
+  var zones = zoneDefs().map(function (d) {
+    return {
+      zone: d.zone,
+      name: d.name,
+      pctLow: d.pctLow,
+      pctHigh: d.pctHigh,
+      bpmLow: clampInt(restingHR + hrr * d.pctLow / 100, 0, 300),
+      bpmHigh: clampInt(restingHR + hrr * d.pctHigh / 100, 0, 300)
+    };
+  });
+  return { maxHR: Math.round(maxHR), restingHR: Math.round(restingHR), method: 'karvonen', zones: zones };
+}
+
+/* Plain-English polarized plans. 80% easy (Z1/Z2), 20% hard (Z4/Z5). */
+var POLARIZED_GOALS = {
+  'general-fitness': { label: 'General fitness',
+    hard: '4 × 4 min hard (Z4) with 3 min easy jog between — total {hard} min hard work.' },
+  '5k': { label: '5K race',
+    hard: '6 × 3 min at Z4 with 2 min easy jog between — total {hard} min hard work.' },
+  '10k': { label: '10K race',
+    hard: '5 × 5 min at Z4 with 3 min easy jog between — total {hard} min hard work.' },
+  'half-marathon': { label: 'Half marathon',
+    hard: '3 × 10 min at high Z3 / low Z4 with 4 min easy jog between — total {hard} min hard work.' },
+  'marathon': { label: 'Marathon',
+    hard: '2 × 20 min at high Z3 / low Z4 with 5 min easy jog between — total {hard} min hard work.' },
+  'weight-loss': { label: 'Weight loss',
+    hard: '8 × 1 min fast (Z5) with 2 min easy walk/jog between — total {hard} min hard work.' }
+};
+
+function polarizedPlan(weeklyHours, goal) {
+  if (!isNum(weeklyHours) || weeklyHours < 1 || weeklyHours > 25) {
+    return { error: 'Weekly hours must be between 1 and 25.' };
+  }
+  if (!POLARIZED_GOALS[goal]) {
+    return { error: 'Pick a training goal.' };
+  }
+  var totalMin = Math.round(weeklyHours * 60);
+  var hardMin = Math.max(10, Math.round(totalMin * 0.20));
+  var easyMin = totalMin - hardMin;
+  var g = POLARIZED_GOALS[goal];
+  var hardDesc = g.hard.replace('{hard}', String(hardMin));
+
+  var sessions = [];
+  var hardCount = weeklyHours >= 8 ? 2 : 1;
+
+  function pushEasy(day, name, minutes, note) {
+    sessions.push({
+      day: day, name: name, minutes: minutes, zone: 'Z1–Z2', intensity: 'easy',
+      description: 'Easy effort in Zone 1–2 at a fully conversational pace. You should finish feeling like you could do it again. ' + note
+    });
+  }
+
+  if (hardCount === 2) {
+    var perHard = Math.round(hardMin / 2);
+    sessions.push({ day: 'Tuesday', name: 'Interval session A', minutes: perHard, zone: 'Z4–Z5', intensity: 'hard',
+      description: 'Warm up 10 min easy, then: ' + hardDesc.replace(String(hardMin), String(perHard)) + ' Cool down 10 min easy.' });
+    sessions.push({ day: 'Friday', name: 'Interval session B', minutes: perHard, zone: 'Z4–Z5', intensity: 'hard',
+      description: 'Warm up 10 min easy, then: ' + hardDesc.replace(String(hardMin), String(perHard)) + ' Cool down 10 min easy.' });
+  } else {
+    sessions.push({ day: 'Tuesday', name: 'Interval session', minutes: hardMin, zone: 'Z4–Z5', intensity: 'hard',
+      description: 'Warm up 10 min easy, then: ' + hardDesc + ' Cool down 10 min easy.' });
+  }
+
+  // Distribute easy minutes: one long session + 2-3 short ones
+  var longMin = Math.min(Math.round(easyMin * 0.5), 150);
+  var rest = easyMin - longMin;
+  var shortCount = weeklyHours >= 6 ? 3 : 2;
+  var perShort = Math.round(rest / shortCount);
+
+  pushEasy('Monday', 'Easy run', perShort, 'Keep it in Zone 1–2 even if it feels too slow — that is the point.');
+  pushEasy('Thursday', 'Easy run', perShort, 'Nose-breathing pace. Walk the hills if your HR drifts into Zone 3.');
+  if (shortCount === 3) {
+    pushEasy('Wednesday', 'Recovery jog', rest - perShort * 2, 'Very light shakeout, mostly Zone 1.');
+  }
+  pushEasy('Saturday', 'Long easy session', longMin, 'The most important session of the week. Stay patient in Zone 2; fuel and hydrate on longer ones.');
+
+  var easyTotal = sessions.filter(function (s) { return s.intensity === 'easy'; })
+    .reduce(function (a, s) { return a + s.minutes; }, 0);
+  var hardTotal = sessions.filter(function (s) { return s.intensity === 'hard'; })
+    .reduce(function (a, s) { return a + s.minutes; }, 0);
+
+  return {
+    goal: goal,
+    goalLabel: g.label,
+    weeklyHours: weeklyHours,
+    totalMin: totalMin,
+    easyMin: easyTotal,
+    hardMin: hardTotal,
+    easyPct: Math.round(easyTotal / (easyTotal + hardTotal) * 100),
+    hardPct: Math.round(hardTotal / (easyTotal + hardTotal) * 100),
+    restDays: ['Sunday'].concat(shortCount === 3 ? [] : ['Wednesday']),
+    sessions: sessions,
+    rule: 'Polarized 80/20: about 80% of your training time stays easy (Zones 1–2) and about 20% goes hard (Zones 4–5). Zone 3 is deliberately minimized — the "grey zone" that is too hard to recover from but too easy to build top-end fitness.'
+  };
+}
+
+/* Talk test + RPE cross-check per zone — verify effort without a monitor. */
+function talkTestFor(zone) {
+  var data = {
+    1: { talk: 'You can chat in full sentences — even sing a song without gasping.',
+         rpe: '1–3', feel: 'Very light. Breathing through your nose, barely sweating.' },
+    2: { talk: 'Full sentences flow comfortably. You could hold a phone call.',
+         rpe: '3–4', feel: 'Comfortable. Slightly deeper breathing, sustainable for hours.' },
+    3: { talk: 'Only short phrases between breaths. Full sentences feel choppy.',
+         rpe: '5–6', feel: 'Comfortably hard. Steady rhythmic breathing, light sweat.' },
+    4: { talk: 'Just a few words at a time. Talking feels like an interruption.',
+         rpe: '7–8', feel: 'Hard. Heavy breathing, burning legs, strong focus needed.' },
+    5: { talk: 'You cannot talk at all — maybe a single gasped word.',
+         rpe: '9–10', feel: 'All-out. Gasping for air, sustainable for only a few minutes.' }
+  };
+  if (!data[zone]) { return { error: 'Zone must be 1–5.' }; }
+  var d = zoneDefs()[zone - 1];
+  return { zone: zone, name: d.name, pctLow: d.pctLow, pctHigh: d.pctHigh,
+           talk: data[zone].talk, rpe: data[zone].rpe, feel: data[zone].feel };
+}
+
+function talkTestsAll() {
+  return [1, 2, 3, 4, 5].map(function (z) { return talkTestFor(z); });
+}
+
+/* ---- retest guidance ---- */
+function parseISODate(s) {
+  if (typeof s !== 'string') { return null; }
+  var m = /^(\d{4})-(\d{2})-(\d{2})$/.exec(s.trim());
+  if (!m) { return null; }
+  var y = +m[1], mo = +m[2], d = +m[3];
+  if (mo < 1 || mo > 12 || d < 1 || d > 31) { return null; }
+  var dt = new Date(Date.UTC(y, mo - 1, d));
+  if (dt.getUTCFullYear() !== y || dt.getUTCMonth() !== mo - 1 || dt.getUTCDate() !== d) { return null; }
+  return dt;
+}
+
+function daysBetween(aISO, bISO) {
+  var a = parseISODate(aISO), b = parseISODate(bISO);
+  if (!a || !b) { return null; }
+  return Math.round((b.getTime() - a.getTime()) / 86400000);
+}
+
+function retestGuidance(lastTestDate, todayISO) {
+  var today = todayISO || new Date().toISOString().slice(0, 10);
+  if (!lastTestDate) {
+    return {
+      status: 'never',
+      headline: 'No test on record',
+      detail: 'If you have never done a max-HR or threshold field test, your zones are guesses. Do one test (see the protocol below), then retest every 6–8 weeks.',
+      daysSince: null,
+      signsStale: signsZonesStale(),
+      protocol: retestProtocol()
+    };
+  }
+  var days = daysBetween(lastTestDate, today);
+  if (days === null || days < 0) {
+    return { error: 'Enter a valid past date (YYYY-MM-DD).' };
+  }
+  var g;
+  if (days >= 56) {
+    g = { status: 'overdue', headline: 'Retest now — zones are stale',
+          detail: 'It has been ' + days + ' days (8+ weeks) since your last test. Max HR and threshold drift as fitness changes, so these zones no longer reflect your body.' };
+  } else if (days >= 42) {
+    g = { status: 'due', headline: 'Retest due soon',
+          detail: 'It has been ' + days + ' days since your last test. Schedule your next max-HR / threshold test within the next 2 weeks (the 6–8 week window).' };
+  } else {
+    g = { status: 'fresh', headline: 'Zones look current',
+          detail: 'It has been ' + days + ' days since your last test. Retest in ' + (56 - days) + ' days at the latest (every 6–8 weeks).' };
+  }
+  g.daysSince = days;
+  g.signsStale = signsZonesStale();
+  g.protocol = retestProtocol();
+  return g;
+}
+
+function signsZonesStale() {
+  return [
+    'Your resting heart rate has dropped 5+ bpm since the test — fitness improved, zones are too low.',
+    'Zone 2 feels effortless even at the top of the range — your aerobic base has outgrown the numbers.',
+    'You cannot reach your old max HR in hard intervals — max HR may have dropped with age or fatigue.',
+    'RPE and HR disagree: e.g. Z4 pace now feels like Z2 effort — the talk test says one thing, the monitor says another.',
+    'You took 2+ weeks off training, got ill, or changed altitude — retest when you return.',
+    'Big weight change (±5 kg) or a new medication affecting heart rate — numbers need recalibrating.'
+  ];
+}
+
+function retestProtocol() {
+  return [
+    { step: 1, name: 'Get cleared', detail: 'Only if you are new to intense exercise or have a heart condition: check with a doctor first. Never test alone.' },
+    { step: 2, name: 'Warm up 15 minutes', detail: 'Easy jog building from Zone 1 to Zone 2, with 3 × 30-second strides at the end.' },
+    { step: 3, name: 'Hill repeats — 3 × 3 minutes', detail: 'Find a steady hill. Run 3 minutes hard uphill (last rep all-out), jog back down 3 minutes between. Your peak HR on the final rep ≈ max HR.' },
+    { step: 4, name: 'Alternative: 30-min time trial', detail: 'After warm-up, run 30 minutes as hard as you can sustain. Average HR of the last 20 minutes ≈ lactate threshold HR.' },
+    { step: 5, name: 'Cool down 10 minutes', detail: 'Easy jog then walk. Record peak HR, threshold HR, date, sleep, and how you felt.' },
+    { step: 6, name: 'Update your zones', detail: 'Enter the new max HR above, recalculate, and print a fresh wallet card. Retest again in 6–8 weeks.' }
+  ];
+}
+
+/* Wallet card: compact personal zone summary for printing. */
+function walletCard(zonesResult) {
+  if (!zonesResult || zonesResult.error || !zonesResult.zones) {
+    return { error: 'Calculate your zones first.' };
+  }
+  return {
+    method: zonesResult.method,
+    maxHR: zonesResult.maxHR,
+    restingHR: zonesResult.restingHR || null,
+    date: new Date().toISOString().slice(0, 10),
+    zones: zonesResult.zones.map(function (z) {
+      return { zone: z.zone, name: z.name, range: z.bpmLow + '–' + z.bpmHigh + ' bpm' };
+    })
+  };
+}
+
+</script>
+
+<script>
+(function () {
+  'use strict';
+  var $ = function (id) { return document.getElementById(id); };
+  var lastZones = null;
+
+  var LANE_COLORS = ['#3E8914', '#2E9E4F', '#FFD100', '#E10600', '#8B0000'];
+  var LANE_TEXT = ['#FFFFFF', '#FFFFFF', '#101210', '#FFFFFF', '#FFFFFF'];
+
+  function showErr(id, msg) {
+    var el = $(id);
+    if (!msg) { el.classList.add('hidden'); el.textContent = ''; return; }
+    el.textContent = msg; el.classList.remove('hidden');
+  }
+  function save() {
+    try {
+      localStorage.setItem('zb', JSON.stringify({
+        age: $('age').value, maxhr: $('maxhr').value, resting: $('resting').value,
+        useEst: $('useEst').checked, hours: $('planHours').value,
+        goal: $('planGoal').value, lastTest: $('lastTest').value
+      }));
+    } catch (e) {}
+  }
+  function load() {
+    try {
+      var s = JSON.parse(localStorage.getItem('zb') || '{}');
+      if (s.age) $('age').value = s.age;
+      if (s.maxhr) $('maxhr').value = s.maxhr;
+      if (s.resting) $('resting').value = s.resting;
+      if (s.useEst) { $('useEst').checked = true; toggleEst(); }
+      if (s.hours) $('planHours').value = s.hours;
+      if (s.goal) $('planGoal').value = s.goal;
+      if (s.lastTest) $('lastTest').value = s.lastTest;
+    } catch (e) {}
+  }
+  function toggleEst() {
+    var est = $('useEst').checked;
+    $('ageWrap').classList.toggle('hidden', !est);
+    $('maxWrap').classList.toggle('hidden', est);
+  }
+  function num(id) {
+    var v = parseFloat($(id).value);
+    return isFinite(v) ? v : null;
+  }
+
+  /* ---- Step 1: zones ---- */
+  $('useEst').addEventListener('change', toggleEst);
+  $('btnCalc').addEventListener('click', function () {
+    showErr('calcErr', null); $('calcNote').classList.add('hidden');
+    var resting = num('resting');
+    var res;
+    if ($('useEst').checked) {
+      var age = num('age');
+      var est = estimateMaxHR(age, 'tanaka');
+      if (est.error) { showErr('calcErr', est.error); return; }
+      res = (resting !== null) ? zonesByKarvonen(est.value, resting) : zonesByMaxHR(est.value);
+      if (!res.error) $('calcNote').textContent = 'Estimated max HR ' + est.value + ' bpm (' + est.label + ') — a measured max is more accurate.';
+    } else {
+      var max = num('maxhr');
+      res = (resting !== null) ? zonesByKarvonen(max, resting) : zonesByMaxHR(max, resting);
+      if (!res.error && resting === null) $('calcNote').textContent = 'Classic % of max HR. Add a resting HR for the more personal Karvonen formula.';
+    }
+    if (!res || res.error) { showErr('calcErr', res ? res.error : 'Enter your max heart rate or estimate it from age.'); return; }
+    lastZones = res;
+    if ($('calcNote').textContent) $('calcNote').classList.remove('hidden');
+    renderLanes(res);
+    renderWallet(res);
+    save();
+  });
+
+  function renderLanes(res) {
+    var html = '<h3 class="font-track uppercase text-xl font-semibold mb-1">Your track — 5 lanes</h3>' +
+      '<p class="text-xs text-[#8E938A] mb-3">Method: ' + (res.method === 'karvonen' ? 'Karvonen (HR reserve)' : '% of max HR') +
+      (res.restingHR ? ' · resting ' + res.restingHR + ' bpm' : '') + ' · max ' + res.maxHR + ' bpm. Tap a lane for its feel-check.</p>';
+    res.zones.forEach(function (z, i) {
+      var t = talkTestFor(z.zone);
+      html +=
+        '<button data-lane="' + z.zone + '" class="lane-btn w-full text-left rounded-xl overflow-hidden border border-black/40 hover:brightness-110 active:scale-[0.99] transition" style="background:' + LANE_COLORS[i] + '">' +
+          '<div class="lane-line"></div>' +
+          '<div class="flex items-center gap-3 sm:gap-5 px-4 sm:px-6 py-3.5" style="color:' + LANE_TEXT[i] + '">' +
+            '<span class="font-track text-3xl sm:text-4xl font-bold w-10 shrink-0 text-center bg-black/25 rounded-lg py-1">' + z.zone + '</span>' +
+            '<span class="flex-1 min-w-0"><span class="font-track uppercase text-lg sm:text-xl font-semibold tracking-wide block">' + z.name + '</span>' +
+            '<span class="text-xs opacity-90 block">' + z.pctLow + '–' + z.pctHigh + '% of ' + (res.method === 'karvonen' ? 'HR reserve' : 'max HR') + '</span></span>' +
+            '<span class="font-track text-2xl sm:text-3xl font-bold whitespace-nowrap">' + z.bpmLow + '–' + z.bpmHigh + ' <span class="text-sm font-medium">bpm</span></span>' +
+          '</div>' +
+          '<div class="lane-detail hidden px-4 sm:px-6 pb-4" style="color:' + LANE_TEXT[i] + '">' +
+            '<div class="bg-black/25 rounded-lg p-3 text-sm leading-relaxed">' +
+              '<p><strong>Talk test:</strong> ' + t.talk + '</p>' +
+              '<p class="mt-1"><strong>RPE:</strong> ' + t.rpe + ' / 10 &nbsp;·&nbsp; <strong>Feels like:</strong> ' + t.feel + '</p>' +
+            '</div>' +
+          '</div>' +
+          '<div class="lane-line-b"></div>' +
+        '</button>';
+    });
+    $('lanes').innerHTML = html;
+    Array.prototype.forEach.call(document.querySelectorAll('.lane-btn'), function (b) {
+      b.addEventListener('click', function () {
+        var d = b.querySelector('.lane-detail');
+        d.classList.toggle('hidden');
+      });
+    });
+  }
+
+  /* ---- Step 2: talk-test cards ---- */
+  function renderTalk() {
+    var all = talkTestsAll();
+    $('talkCards').innerHTML = all.map(function (t, i) {
+      return '<div class="bg-[#101210] border border-[#2A2D28] rounded-xl overflow-hidden">' +
+        '<div class="px-4 py-2.5 font-track uppercase font-semibold tracking-wide" style="background:' + LANE_COLORS[i] + ';color:' + LANE_TEXT[i] + '">Zone ' + t.zone + ' · ' + t.name + ' <span class="float-right">RPE ' + t.rpe + '</span></div>' +
+        '<div class="p-4 text-sm leading-relaxed space-y-2">' +
+          '<p><span class="text-[#FFD100] font-semibold">Say it:</span> ' + t.talk + '</p>' +
+          '<p><span class="text-[#FFD100] font-semibold">Feels like:</span> ' + t.feel + '</p>' +
+        '</div></div>';
+    }).join('');
+  }
+
+  /* ---- Step 3: polarized plan ---- */
+  $('btnPlan').addEventListener('click', function () {
+    showErr('planErr', null);
+    var hours = num('planHours');
+    var goal = $('planGoal').value;
+    var p = polarizedPlan(hours, goal);
+    if (p.error) { showErr('planErr', p.error); $('planOut').innerHTML = ''; return; }
+    var badge = function (s) {
+      return s.intensity === 'hard'
+        ? '<span class="text-[11px] font-bold uppercase tracking-wider bg-[#E10600] text-white rounded-full px-2.5 py-0.5">Hard</span>'
+        : '<span class="text-[11px] font-bold uppercase tracking-wider bg-[#2E9E4F] text-white rounded-full px-2.5 py-0.5">Easy</span>';
+    };
+    var html = '<div class="bg-[#101210] border border-[#2A2D28] rounded-xl p-5">' +
+      '<div class="flex flex-wrap items-center gap-3">' +
+        '<p class="font-track uppercase text-xl font-semibold">' + p.goalLabel + ' · ' + p.weeklyHours + 'h/week</p>' +
+        '<span class="text-xs font-bold uppercase tracking-widest bg-[#2E9E4F] text-white rounded-full px-3 py-1">' + p.easyPct + '% easy</span>' +
+        '<span class="text-xs font-bold uppercase tracking-widest bg-[#E10600] text-white rounded-full px-3 py-1">' + p.hardPct + '% hard</span>' +
+        '<span class="text-xs text-[#8E938A]">Rest: ' + p.restDays.join(' + ') + '</span>' +
+      '</div>' +
+      '<p class="text-xs text-[#8E938A] mt-2 leading-relaxed">' + p.rule + '</p>' +
+      '<div class="mt-4 grid gap-3 md:grid-cols-2">' +
+      p.sessions.map(function (s) {
+        return '<div class="bg-[#1D1F1C] border border-[#2A2D28] rounded-xl p-4">' +
+          '<div class="flex items-center justify-between gap-2 flex-wrap">' +
+            '<p class="font-semibold text-[#FFD100] text-sm uppercase tracking-wider">' + s.day + '</p>' + badge(s) +
+          '</div>' +
+          '<p class="font-track uppercase text-lg font-semibold mt-1">' + s.name + ' <span class="text-sm text-[#8E938A] font-normal normal-case">· ' + s.minutes + ' min · ' + s.zone + '</span></p>' +
+          '<p class="text-sm text-[#B9BDB4] mt-1.5 leading-relaxed">' + s.description + '</p>' +
+        '</div>';
+      }).join('') + '</div></div>';
+    $('planOut').innerHTML = html;
+    save();
+  });
+
+  /* ---- Step 4: wallet card ---- */
+  function renderWallet(res) {
+    var card = walletCard(res);
+    if (card.error) return;
+    $('wcMeta').textContent = (card.method === 'karvonen' ? 'Karvonen' : '% of max HR') +
+      ' · max ' + card.maxHR + ' bpm' + (card.restingHR ? ' · resting ' + card.restingHR + ' bpm' : '') +
+      ' · ' + card.date;
+    $('wcZones').innerHTML = card.zones.map(function (z, i) {
+      return '<div class="flex items-center gap-3">' +
+        '<span class="w-7 h-7 rounded-full text-white text-xs font-bold flex items-center justify-center shrink-0" style="background:' + LANE_COLORS[i] + '">' + z.zone + '</span>' +
+        '<span class="text-sm font-semibold flex-1">' + z.name + '</span>' +
+        '<span class="text-sm font-bold tabular-nums">' + z.range + '</span></div>';
+    }).join('');
+  }
+  $('btnPrint').addEventListener('click', function () {
+    if (!lastZones) {
+      var el = $('walletErr');
+      el.textContent = 'Calculate your zones in Step 1 first — the card needs your personal BPM ranges.';
+      el.classList.remove('hidden');
+      return;
+    }
+    $('walletErr').classList.add('hidden');
+    window.print();
+  });
+
+  /* ---- Step 5: retest ---- */
+  function renderRetestStatic() {
+    var g = retestGuidance(null);
+    $('retestOut').innerHTML = retestBlock(g);
+  }
+  function retestBlock(g) {
+    if (g.error) return '';
+    var color = g.status === 'overdue' ? '#E10600' : (g.status === 'due' ? '#FFD100' : '#2E9E4F');
+    var dark = g.status === 'due' ? '#101210' : '#fff';
+    var html = '<div class="rounded-xl p-5 border-2" style="border-color:' + color + '">' +
+      '<p class="font-track uppercase text-xl font-semibold" style="color:' + color + '">' + g.headline + '</p>' +
+      '<p class="text-sm text-[#B9BDB4] mt-1.5 leading-relaxed">' + g.detail + '</p>' +
+      '<h4 class="font-semibold mt-4 text-sm uppercase tracking-wider text-[#F2F3EF]">Signs your zones are stale</h4>' +
+      '<ul class="mt-2 space-y-1.5 text-sm text-[#B9BDB4]">' +
+      g.signsStale.map(function (s) { return '<li class="flex gap-2"><span style="color:' + color + '">▸</span><span>' + s + '</span></li>'; }).join('') +
+      '</ul>' +
+      '<h4 class="font-semibold mt-5 text-sm uppercase tracking-wider text-[#F2F3EF]">Retest protocol (free, no lab needed)</h4>' +
+      '<ol class="mt-2 space-y-2">' +
+      g.protocol.map(function (p) {
+        return '<li class="bg-[#101210] border border-[#2A2D28] rounded-lg p-3 text-sm"><span class="font-track font-semibold text-[#FFD100] mr-2">' + p.step + '</span><strong>' + p.name + '.</strong> <span class="text-[#B9BDB4]">' + p.detail + '</span></li>';
+      }).join('') + '</ol></div>';
+    return html;
+  }
+  $('btnRetest').addEventListener('click', function () {
+    showErr('retestErr', null);
+    var g = retestGuidance($('lastTest').value || null);
+    if (g.error) { showErr('retestErr', g.error); return; }
+    $('retestOut').innerHTML = retestBlock(g);
+    save();
+  });
+
+  renderTalk();
+  renderRetestStatic();
+  load();
+})();
+</script>
+</body>
+</html>
